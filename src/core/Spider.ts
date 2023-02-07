@@ -196,7 +196,6 @@ export class Spider {
                 // @ts-ignore
                 for (const link of templateResults) {
                     const title = $(param.titleSelector).text() || $(link).text() || $(param.titleSelector, $(link)).text() as string
-                    console.log(title)
                     result.push({
                         link: $(link).attr(param.attr) as string,
                         foldName: title.trim().replace(/\s/g, '')
