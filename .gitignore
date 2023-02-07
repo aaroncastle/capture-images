@@ -1,0 +1,9 @@
+# Project exclude paths
+node_modules/
+.idea/
+.DS_Store
+resource
+src/logs
+src/cache
+src/test.ts
+config.json

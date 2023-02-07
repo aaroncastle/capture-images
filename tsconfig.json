@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "target": "ES2021",
+    "lib": [
+      "ESNext"
+    ],
+    "module": "esnext",
+    "moduleResolution": "nodenext",
+    "resolveJsonModule": true,
+    "strictNullChecks": true,
+    "outDir": "./lib",
+    "esModuleInterop": true,
+    "declaration": true,
+    "sourceMap": true,
+    "removeComments": true,
+    "noEmitOnError": true,
+    "emitDecoratorMetadata": true
+  },
+  "ts-node": {
+    "transpileOnly": true,
+    "files": true,
+    "experimentalResolver": true
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "captrue-image-for-ts",
+  "version": "0.1.0",
+  "dependencies": {
+    "@types/node": "^16.11.4",
+    "cheerio": "^1.0.0-rc.5",
+    "follow-redirects": "^1.15.2"
+  },
+  "devDependencies": {
+    "@types/follow-redirects": "^1.14.1",
+    "axios": "^1.3.0",
+    "cross-env": "^7.0.3",
+    "node-ts": "^5.1.2",
+    "nodemon": "^2.0.20",
+    "types": "^0.1.1",
+    "typescript": "^4.9.5"
+  },
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development nodemon -e ts --exec ts-node-esm src/main.ts",
+    "test": "cross-env NODE_ENV=development nodemon -e ts --exec ts-node-esm src/test.ts",
+    "build": "cross-env NODE_ENV=production rm -rf ./lib & mkdir lib & tsc"
+  },
+  "description": "A general crawler program written in typescript language",
+  "main": "src/main.js",
+  "type": "module",
+  "repository": "https://github.com/aaroncastle/captureImages.git",
+  "author": "AaronCastle <aaroncastle@163.com>",
+  "license": "MIT",
+  "private": false
+}
