@@ -70,7 +70,13 @@ export class Spider {
                 } else if (Object.is(workflow?.type, 'category') && !workflows.length) {
                     for (const datum of result as ICategoryResult[]) {
                         // 给每个分类创建文件夹名
-                        const savePath = Assistant.createFolder(datum.foldName, path)
+                        let savePath:string
+                        if (!Object.is(basename(path), datum.foldName)) {
+                            savePath = Assistant.createFolder(datum.foldName, path)
+                        } else{
+                            savePath = path
+                        }
+
                         if (config.sync) {
                             await this.assemblyLine(datum.link, [ ...workflows ], savePath)
                         } else {

@@ -24,8 +24,8 @@ axios.defaults.timeout = config.timeout || 0
 
 const instance = axios.create()
 const historyImages = (await readFile(normalize(resolve(dirname(fileURLToPath(import.meta.url)), '../logs/history.image')), 'utf-8')).split(EOL).filter(r => r.trim())
-const relPath = normalize(join(resolve(fileURLToPath(import.meta.url)), "../../../",config.destination))
-export const DEFAULT_DIST = existsSync(relPath) ? relPath : config.destination
+const absPath = normalize(resolve(dirname(fileURLToPath(import.meta.url)),config.destination))
+export const DEFAULT_DIST = existsSync(absPath)? absPath : normalize(join(resolve(fileURLToPath(import.meta.url)), "../../../",config.destination))
 export const DEFAULT_LOG = normalize(resolve(dirname(fileURLToPath(import.meta.url)), '../logs'))
 const DEFAULT_CACHE = normalize(resolve(dirname(fileURLToPath(import.meta.url)), '../cache'))
 
