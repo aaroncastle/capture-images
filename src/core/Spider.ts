@@ -32,7 +32,7 @@ export class Spider {
             } else {
                 workFlows = workFlows.slice()
             }
-            return await this.assemblyLine(site, workFlows, path)
+            return Promise.all([this.assemblyLine(site, workFlows, path)]).then(r => r.flat()).catch(e => e)
         } else {
             console.warn('入口站点为空,必须给一个入口网址')
         }
@@ -45,75 +45,51 @@ export class Spider {
      * @param path
      * @private
      */
-    private static async assemblyLine(site, workflows: IWorkFlow[], path: string = DEFAULT_DIST) {
+    private static assemblyLine(site, workflows: IWorkFlow[], path: string = DEFAULT_DIST) {
         if (workflows.length) {
             const workflow = workflows.shift() as IWorkFlow
-            const result = await this.action(site, workflow as IWorkFlow)
-            if (result) {
-                if (Object.is(workflow?.type, 'category') && workflows.length) {
-                    for (const datum of result as ICategoryResult[]) {
-                        // 给每个分类创建文件夹名
-                        if (workflow.included) {
-                            if (workflow.included.includes(datum.link)) {
-                                const savePath = Assistant.createFolder(datum.foldName, path)
-                                await this.assemblyLine(datum.link, [ ...workflows ], savePath)
-                            }
+            return this.action(site, workflow as IWorkFlow).then( result => {
+                if (Object.is(workflow?.type, 'category')) {
+                    const categoryTasks = (result as ICategoryResult[]).filter(item => ("included" in workflow && workflow.included?.includes(item.link) ) || ("excluded" in workflow && !workflow.excluded?.includes(item.link)) || item ).map(item => {
+                        let savePath: string
+                        if (!Object.is(basename(path), item.foldName)) {
+                            savePath = Assistant.createFolder(item.foldName, path)
                         } else {
-                            if (workflow.excluded && workflow.excluded.includes(datum.link)) {
-                                continue
-                            }
-                            const savePath = Assistant.createFolder(datum.foldName, path)
-                            await this.assemblyLine(datum.link, [ ...workflows ], savePath)
-                        }
-
-                    }
-                } else if (Object.is(workflow?.type, 'category') && !workflows.length) {
-                    for (const datum of result as ICategoryResult[]) {
-                        // 给每个分类创建文件夹名
-                        let savePath:string
-                        if (!Object.is(basename(path), datum.foldName)) {
-                            savePath = Assistant.createFolder(datum.foldName, path)
-                        } else{
                             savePath = path
                         }
-
-                        if (config.sync) {
-                            await this.assemblyLine(datum.link, [ ...workflows ], savePath)
-                        } else {
-                            this.assemblyLine(datum.link, [ ...workflows ], savePath)
-                        }
-                    }
-                } else {
-                    // 分页处理
+                        return this.assemblyLine(item.link, [ ...workflows ], savePath)
+                    })
+                    return Promise.all(categoryTasks).then(r =>  r.flat()).catch(e => e)
+                }  else {
                     if ('reg' in workflow) {
-
-                        for (let i = 1; "total" in result && i <= result.total; i++) {
+                        const paginationTasks = new Array((result as  IPaginationResult).total).fill(0).map((item,index) => {
                             // 根据结果得到文件夹名
                             let savePath: string
-                            if (!Object.is(basename(path), result.foldName)) {
-                                savePath = Assistant.createFolder(result.foldName, path)
+                            if (!Object.is(basename(path), (result as  IPaginationResult).foldName)) { // 给的保存路径不包含文件夹名，则创建文件夹
+                                savePath = Assistant.createFolder((result as  IPaginationResult).foldName, path)
                             } else {
+                                // 给的保存路径包含文件夹名，文件夹则用路径
                                 savePath = path
                             }
-                            if (Object.is(result.total, 1)) {
-                                await this.assemblyLine(result.template, [ ...workflows ], savePath)
-                                break
+                            if (Object.is((result as  IPaginationResult).total, 1)) {
+                                // 如果只有一页，说明无法分页，直接将模版用来作为分类页
+                                return this.assemblyLine((result as  IPaginationResult).template, [ ...workflows ], savePath)
+                            }else {
+                                // 遍历置换分页页码网址
+                                const str = workflow.reg + (result as  IPaginationResult).total.toString()
+                                const link = (result as  IPaginationResult).template.replace(new RegExp(str), workflow.reg + (index + 1).toString())
+                                return this.assemblyLine(link, [ ...workflows ], savePath)
                             }
-                            // 遍历置换分页页码网址
-                            const str = workflow.reg + result.total.toString()
-                            const link = result.template.replace(new RegExp(str), workflow.reg + i.toString())
-                            await this.assemblyLine(link, [ ...workflows ], savePath)
-                        }
+                        })
+                        return Promise.all(paginationTasks).then(r => r.flat()).catch(e => e)
                     } else {
-                        return `分页workflow 缺少正则 ${ workflow }`
+                        return Promise.reject(`分页workflow 缺少正则 ${ workflow }`)
                     }
                 }
-            } else {
-                return `：：：：：：：此页 ${ site } 已经在配置中排除：：：：：：：🈹🈹🈹`
-            }
+            }).catch( e => e)
         } else {
             // 下载图片页面
-            await Assistant.request(site, false, path)
+            return Assistant.request(site, false, path)
         }
     }
 
@@ -122,14 +98,14 @@ export class Spider {
      * @param site url
      * @param option workflow
      */
-    public static async action(site: string, option: IWorkFlow) {
-        const siteHtml = await Assistant.request(site) as string
-
-        return this.resolveSite({
-            site,
-            siteHtml,
-            ...option
-        });
+    public static action(site: string, option: IWorkFlow) {
+        return Assistant.request(site).then(siteHtml => {
+            return this.resolveSite({
+                site,
+                siteHtml,
+                ...option
+            })
+        }).catch(e => Promise.reject(e))
     }
 
     /**
@@ -144,14 +120,14 @@ export class Spider {
      * 解析页面
      * @param param IResolveParam
      */
-    public static resolveSite(param: IResolveParam): ICategoryResult[] | IPaginationResult | null {
+    public static async resolveSite(param: IResolveParam): Promise<ICategoryResult[] | IPaginationResult >{
         console.log(`********开始解析 ${ param.site } ********`)
         // 解析的是非图片地址
         const picArr = [ '.jpg', '.jpeg', '.gif', '.webp', '.bmp' ]
         const ext = extname(param.site)
         if (picArr.includes(ext)) {
             return [ {
-                foldName: 'error',
+                foldName: `onlyPhoto-${param.site}`,
                 link: param.site
             } ]
         }
@@ -162,9 +138,8 @@ export class Spider {
             if (!$(param.selector).length) {
                 if (sign.length) {
                     const error = `未找到要查询的【分页】元素，page：${ param.site }，selector：${ param.selector },type:${ param.type }`
-                    console.warn(error)
                     Assistant.errorLog(error)
-                    return null;
+                    return Promise.reject(error)
                 } else {
                     // 没有找到分页标识，说明只有单页面
                     return {
@@ -173,8 +148,8 @@ export class Spider {
                         total: 1
                     }
                 }
-
             } else {
+                // 分页有多页
                 const result: IPaginationResult = {
                     foldName: "",
                     template: "",
@@ -186,22 +161,20 @@ export class Spider {
 
                 result.total = param.next ? +($(param.next, target).text()) : +target.text()
                 result.foldName = title.trim().replace(/\s/g, '')
-                return result
+                return Promise.resolve(result)
             }
 
         } else {  // 分类
             if (!$(param.selector).length) {
                 const error = `未找到要查询的【分类】元素，page：${ param.site }，selector：${ param.selector },type:${ param.type }`
-                console.warn(error)
                 Assistant.errorLog(error)
-                return null;
-
+                return Promise.reject(error)
             } else {
                 const result: ICategoryResult[] = []
                 const templateResults = $(param.selector)
                 // @ts-ignore
                 for (const link of templateResults) {
-                    const title = $(param.titleSelector).text() || $(link).text() || $(param.titleSelector, $(link)).text() as string
+                    const title = $(link).text() || $(param.titleSelector, $(link)).text() || $(param.titleSelector).text()
                     result.push({
                         link: $(link).attr(param.attr) as string,
                         foldName: title.trim().replace(/\s/g, '')
@@ -209,7 +182,6 @@ export class Spider {
                 }
                 return result;
             }
-
         }
     }
 }

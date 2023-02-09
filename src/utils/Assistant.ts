@@ -6,13 +6,12 @@
  */
 
 import { fileURLToPath } from "url";
-import { dirname, resolve, normalize, basename, join } from "node:path";
+import { basename, dirname, join, normalize, resolve } from "node:path";
 import config from '../../config.json' assert { type: 'json' }
 import { appendFileSync, existsSync, mkdirSync } from "fs";
 import { URL, urlToHttpOptions } from "node:url";
 import axios from "axios";
-import { appendFile, readFile, writeFile } from "fs/promises";
-import cache from "../cache/cache.json" assert { type: 'json' };
+import { appendFile, readFile} from "fs/promises";
 import { EOL } from "os";
 import https from 'https'
 
@@ -23,69 +22,56 @@ axios.defaults.headers.common["User-Agent"] = `Mozilla/5.0 (Macintosh; Intel Mac
 axios.defaults.timeout = config.timeout || 0
 
 const instance = axios.create()
-const historyImages = (await readFile(normalize(resolve(dirname(fileURLToPath(import.meta.url)), '../logs/history.image')), 'utf-8')).split(EOL).filter(r => r.trim())
-const absPath = normalize(resolve(dirname(fileURLToPath(import.meta.url)),config.destination))
-export const DEFAULT_DIST = existsSync(absPath)? absPath : normalize(join(resolve(fileURLToPath(import.meta.url)), "../../../",config.destination))
+const historyPath = normalize(resolve(dirname(fileURLToPath(import.meta.url)), '../logs/history.image'))
+const histories = (existsSync(historyPath) && (await readFile(historyPath, 'utf-8')).split(EOL).filter(r => r.trim())) || []
+const absPath = normalize(resolve(dirname(fileURLToPath(import.meta.url)), config.destination))
+export const DEFAULT_DIST = existsSync(absPath) ? absPath : normalize(join(resolve(fileURLToPath(import.meta.url)), "../../../", config.destination))
 export const DEFAULT_LOG = normalize(resolve(dirname(fileURLToPath(import.meta.url)), '../logs'))
-const DEFAULT_CACHE = normalize(resolve(dirname(fileURLToPath(import.meta.url)), '../cache'))
 
 export class Assistant {
 
     /**
      *
-     * @param site 访问的页面网址
+     * @param url 访问的页面网址
      * @param isSite 是否是需要解析的页面,默认为true
      * @param folderName
      */
-    static async request(site: string, isSite: boolean = true, folderName: string = DEFAULT_DIST): Promise<string> {
-        const domain = (urlToHttpOptions(new URL(site)).hostname) as string;
+    static async request(url: string, isSite: boolean = true, folderName: string = DEFAULT_DIST): Promise<string> {
+        const domain = (urlToHttpOptions(new URL(url)).hostname) as string;
         instance.interceptors.request.use(configuration => {
             (config[domain] && config[domain]['cookie']) && (configuration.headers['cookie'] = config[domain]['cookie'])
             return configuration;
-        }, _ => {
-            console.log("err:", 'axios解析❌')
-        })
+        }, _ => {console.log("err:", 'axios解析❌')})
 
 
         if (!isSite) {
             // 访问图片页面,返回over字符串
-            if (historyImages.includes(site) && existsSync(normalize(resolve(dirname(fileURLToPath(import.meta.url)), folderName, basename(site))))) {
-                console.log(`此图片已经完成下载,本次将忽略🍺🍺🍺`)
-                return 'over'
+            if (histories.includes(url) && existsSync(normalize(resolve(dirname(fileURLToPath(import.meta.url)), folderName, basename(url))))) {
+                console.log(`图片已存在🍺🍺🍺`)
+                return url
             }
-            const result = await instance.get(site, {
+            return await instance.get(url, {
                 httpsAgent,
                 responseType: "arraybuffer",
                 timeout: 7500
-            }).catch(_ => {
-                console.log('图片已删除')
-                return null
-            })
-            if (result) {
-                appendFile(normalize(resolve(dirname(fileURLToPath(import.meta.url)), folderName, basename(site))), result.data).then(() => {
+            }).then(r => {
+                return appendFile(normalize(resolve(dirname(fileURLToPath(import.meta.url)), folderName, basename(url))), r.data).then(() => {
                     if (Object.is(folderName, 'error')) {
-                        console.log(normalize(resolve(dirname(fileURLToPath(import.meta.url)), folderName, basename(site))))
+                        console.log(normalize(resolve(dirname(fileURLToPath(import.meta.url)), folderName, basename(url))))
                     }
-                    console.log('图片下载完成😍😍😍😍😍')
-                    appendFile(join(DEFAULT_LOG, 'history.image'), site + EOL, 'utf-8')
-                }).catch(error => {
-                    console.warn('图片下载失败😭😭😭', site)
-                    console.log('失败原因', error)
+                    console.log('图片下载完成💾💾💾')
+                    appendFile(historyPath, url + EOL, 'utf-8')
+                    return url
                 })
-            }
-            return 'over'
+            }).catch(_ => {
+                return '页面不存在，图片已被删除'
+            })
         } else {
-            if (cache[site]) {
-                // 访问页面并且有缓存
-                return cache[site]
-            } else {
-                // 访问页面且没有缓存
-                const result = await instance.get(site, {httpsAgent})
-                cache[site] = result.data
-                await writeFile(normalize(resolve(dirname(fileURLToPath(import.meta.url)), '../cache/cache.json')), JSON.stringify(cache, null, 2), 'utf-8')
-                await appendFile(normalize(resolve(dirname(fileURLToPath(import.meta.url)), '../logs/history.image')), site + EOL, 'utf-8') // todo 记录成访问日志
-                return result.data
-            }
+            return instance.get(url, {httpsAgent}).then(async result => {
+                if (Object.is(result.status, 200)) {
+                    return result.data
+                }
+            }).catch(() => Promise.reject('网站无法访问'))
         }
     }
 
@@ -116,10 +102,6 @@ export class Assistant {
 
         if (!existsSync(DEFAULT_LOG)) { // 创建默认日志路径
             mkdirSync(DEFAULT_LOG)
-        }
-
-        if (!existsSync(DEFAULT_CACHE)) { // 创建默认缓存路径
-            mkdirSync(DEFAULT_CACHE)
         }
     }
 
