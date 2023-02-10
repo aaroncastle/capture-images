@@ -39,11 +39,11 @@ export class Assistant {
     static async request(url: string, isSite: boolean = true, folderName: string = DEFAULT_DIST): Promise<string> {
         const domain = (urlToHttpOptions(new URL(url)).hostname) as string;
         instance.interceptors.request.use(configuration => {
-            (config[domain]['cookie']) && (configuration.headers['cookie'] = config[domain]['cookie'])
-            (config[domain].timeout || config.timeout) && (configuration.timeout = config[domain].timeout || config.timeout)
-            config[domain].token && (configuration.headers[config[domain].token[0]] = config[domain].token[1])
+            (config[domain] && config[domain]['cookie']) && configuration.headers.set('cookie',config[domain]['cookie'],true);
+
+            (config[domain] && config[domain]['token']) && configuration.headers.set(config[domain]['token'][1],config[domain]['token'][1],true);
             return configuration;
-        }, _ => {console.log("err:", 'axios解析❌')})
+        }, e => {console.log("err:", e.message)})
 
 
         if (!isSite) {
@@ -67,7 +67,7 @@ export class Assistant {
                 })
             }
         } else {
-            return instance.get(url, {httpsAgent}).then(async result => {
+            return instance.get(url, {httpsAgent,timeout: config[domain].timeout || config.timeout || 0}).then(async result => {
                 if (Object.is(result.status, 200)) {
                     return result.data
                 }
