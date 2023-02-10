@@ -1,0 +1,51 @@
+{
+  "destination": "resource",
+  "timeout": 1500,
+  "sync": false,
+  "www.exam.com": {
+    "cookie": "ID=qvm25n6cbuq5ten5q5950;logged_in_52b660f28afb5e4963cee681ee4229=te%7C167637d4568%7Cx3MHpDwq6w29LhioKxf1P94KGbQsknQ9Onp3sdfrntudHdy%7C2334425d3af6d17f1d0c741e468dcb5cfa2c721b4889df6d9652a37910f13dd970",
+    "timeout": 150000,
+    "pageSign": "page-numbers",
+    "workflow": [
+      {
+        "type": "category",
+        "selector": "li[id^=menu-item-].menu-item-type-tarmy a",
+        "titleSelector": "span.font-text",
+        "excluded": [
+          "https://www.exam.com/download/"
+        ],
+        "included": [
+          "https://www.exam.com/%E4%B8%BE%E4%B8%AA%E6%A0%97%E5%AD%90/"
+        ],
+        "attr": "href"
+      },
+      {
+        "type": "pagination",
+        "selector": "#picture  div.nav-link > a:nth-last-of-type(2)",
+        "titleSelector": "#page > nav span.current",
+        "attr": "href",
+        "reg": "/page/"
+      },
+      {
+        "type": "category",
+        "selector": "article[id^=post-] > div > div.link > a",
+        "titleSelector": "#article[id^=post-] > div > h2 > a[rel=title]",
+        "attr": "href"
+      },
+      {
+        "type": "pagination",
+        "selector": "article[id^=post-] > div > div.links > a:nth-last-of-type(2)",
+        "attr": "href",
+        "titleSelector": "#page > nav span.current",
+        "next": "span",
+        "reg": "html/"
+      },
+      {
+        "type": "category",
+        "selector": "article[id] > div > div.single-content > p img",
+        "titleSelector": "#page > nav span.current",
+        "attr": "src"
+      }
+    ]
+  }
+}

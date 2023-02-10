@@ -23,7 +23,7 @@
   "description": "A general crawler program written in typescript language",
   "main": "src/main.js",
   "type": "module",
-  "repository": "https://github.com/aaroncastle/captureImages.git",
+  "repository": "https://github.com/aaroncastle/capture-images.git",
   "author": "AaronCastle <aaroncastle@163.com>",
   "license": "MIT",
   "private": false

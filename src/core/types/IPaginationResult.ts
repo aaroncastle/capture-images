@@ -1,8 +1,8 @@
 /**
  * @CreateTime: 2023/02/03 04:02
- * @Project: captureImages
+ * @Project: capture-images
  * @Author: aaroncastle
- * @GitHub: https://github.com/aaroncastle/captureImages
+ * @GitHub: https://github.com/aaroncastle/capture-images
  */
 
 export interface IPaginationResult{

@@ -1,8 +1,8 @@
 /**
  * @CreateTime: 2023/02/01 02:06
- * @Project: captureImages
+ * @Project: capture-images
  * @Author: aaroncastle
- * @GitHub: https://github.com/aaroncastle/captureImages
+ * @GitHub: https://github.com/aaroncastle/capture-images
  */
 
 import { load } from "cheerio";
@@ -32,9 +32,9 @@ export class Spider {
             } else {
                 workFlows = workFlows.slice()
             }
-            return Promise.all([this.assemblyLine(site, workFlows, path)]).then(r => r.flat()).catch(e => e)
+            return this.assemblyLine(site, workFlows, path).then(r => r.flat()).catch(e => e)
         } else {
-            console.warn('入口站点为空,必须给一个入口网址')
+            console.warn('必须指定一个入口站点')
         }
     }
 

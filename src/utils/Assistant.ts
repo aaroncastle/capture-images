@@ -1,22 +1,22 @@
 /**
  * @CreateTime: 2023/02/01 02:47
- * @Project: captureImages
+ * @Project: capture-images
  * @Author: aaroncastle
- * @GitHub: https://github.com/aaroncastle/captureImages
+ * @GitHub: https://github.com/aaroncastle/capture-images
  */
 
-import { fileURLToPath } from "url";
 import { basename, dirname, join, normalize, resolve } from "node:path";
 import config from '../../config.json' assert { type: 'json' }
 import { appendFileSync, existsSync, mkdirSync } from "fs";
-import { URL, urlToHttpOptions } from "node:url";
+import { URL, urlToHttpOptions,fileURLToPath } from "node:url";
 import axios from "axios";
 import { appendFile, readFile} from "fs/promises";
 import { EOL } from "os";
 import https from 'https'
 
 const httpsAgent = new https.Agent({
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
+    keepAlive: true
 })
 axios.defaults.headers.common["User-Agent"] = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36`
 axios.defaults.timeout = config.timeout || 0
@@ -39,7 +39,9 @@ export class Assistant {
     static async request(url: string, isSite: boolean = true, folderName: string = DEFAULT_DIST): Promise<string> {
         const domain = (urlToHttpOptions(new URL(url)).hostname) as string;
         instance.interceptors.request.use(configuration => {
-            (config[domain] && config[domain]['cookie']) && (configuration.headers['cookie'] = config[domain]['cookie'])
+            (config[domain]['cookie']) && (configuration.headers['cookie'] = config[domain]['cookie'])
+            (config[domain].timeout || config.timeout) && (configuration.timeout = config[domain].timeout || config.timeout)
+            config[domain].token && (configuration.headers[config[domain].token[0]] = config[domain].token[1])
             return configuration;
         }, _ => {console.log("err:", 'axios解析❌')})
 
@@ -49,23 +51,21 @@ export class Assistant {
             if (histories.includes(url) && existsSync(normalize(resolve(dirname(fileURLToPath(import.meta.url)), folderName, basename(url))))) {
                 console.log(`图片已存在🍺🍺🍺`)
                 return url
-            }
-            return await instance.get(url, {
-                httpsAgent,
-                responseType: "arraybuffer",
-                timeout: 7500
-            }).then(r => {
-                return appendFile(normalize(resolve(dirname(fileURLToPath(import.meta.url)), folderName, basename(url))), r.data).then(() => {
-                    if (Object.is(folderName, 'error')) {
-                        console.log(normalize(resolve(dirname(fileURLToPath(import.meta.url)), folderName, basename(url))))
-                    }
-                    console.log('图片下载完成💾💾💾')
-                    appendFile(historyPath, url + EOL, 'utf-8')
-                    return url
+            }else {
+                return instance.get(url, {
+                    httpsAgent,
+                    responseType: "arraybuffer",
+                    timeout: config[domain].timeout || config.timeout || 0
+                }).then( r => {
+                    return appendFile(normalize(resolve(dirname(fileURLToPath(import.meta.url)), folderName, basename(url))), r.data).then( () => {
+                        console.log('图片下载完成💾💾💾')
+                        appendFile(historyPath, url + EOL, 'utf-8')
+                        return url
+                    }).catch(e => e.message)
+                }).catch( e => {
+                    this.errorLog(`site: ${url}, errorType: ${e.message}`)
                 })
-            }).catch(_ => {
-                return '页面不存在，图片已被删除'
-            })
+            }
         } else {
             return instance.get(url, {httpsAgent}).then(async result => {
                 if (Object.is(result.status, 200)) {
