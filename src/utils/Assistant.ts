@@ -19,7 +19,7 @@ const httpsAgent = new https.Agent({
     keepAlive: true
 })
 axios.defaults.headers.common["User-Agent"] = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.192 Safari/537.36`
-axios.defaults.timeout = config.timeout || 0
+axios.defaults.timeout = config.timeout || 500
 
 const instance = axios.create()
 const historyPath = normalize(resolve(dirname(fileURLToPath(import.meta.url)), '../logs/history.image'))
@@ -55,7 +55,7 @@ export class Assistant {
                 return instance.get(url, {
                     httpsAgent,
                     responseType: "arraybuffer",
-                    timeout: config[domain].timeout || config.timeout || 0
+                    timeout: config.timeout
                 }).then( r => {
                     return appendFile(normalize(resolve(dirname(fileURLToPath(import.meta.url)), folderName, basename(url))), r.data).then( () => {
                         console.log('图片下载完成💾💾💾')
@@ -67,7 +67,7 @@ export class Assistant {
                 })
             }
         } else {
-            return instance.get(url, {httpsAgent,timeout: config[domain].timeout || config.timeout || 0}).then(async result => {
+            return instance.get(url, {httpsAgent,timeout: config[domain].timeout || config.timeout || 500}).then(async result => {
                 if (Object.is(result.status, 200)) {
                     return result.data
                 }
