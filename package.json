@@ -1,6 +1,6 @@
 {
   "name": "captrue-image-for-ts",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "dependencies": {
     "@types/node": "^16.11.4",
     "cheerio": "^1.0.0-rc.5",

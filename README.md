@@ -2,7 +2,15 @@
 
 用`typescript`写的用于下载图片的小巧的`node`爬虫程序。
 
-需要先下载好[nodejs](https://nodejs.org/en/#:~:text=18.12.1%20LTS,For%20Most%20Users)并创建环境变量
+它可以轻易的将整个网站的所有图片爬取下来，并分门别类地按网站的分类存储保存图片。
+
+在使用本程序前需要先下载好[nodejs](https://nodejs.org/en/#:~:text=18.12.1%20LTS,For%20Most%20Users)并创建环境变量。
+
+### 更新说明：
+
+版本：v0.1.2  时间：2023/02/14 
+
+> 更新说明文档文件。用法中增加第4、5、6条，这对于非开发人员会更详细友好一些。程序本身没有任何改变。v0.2.x计划的改变，改变原因：[#1](https://github.com/aaroncastle/capture-images/issues/1)
 
 ### 用法：
 
@@ -11,12 +19,21 @@
    git clone https://github.com/aaroncastle/captureImages.git
    cd captureImages
    npm install 
+   npm run dev
    ```
 
 2. 在`src/main.js`文件中`Spider.entry`函数只需要入口站点一个参数即可按照`config.json`中对应的工作流**顺序**爬取内容，如果入口站点与工作流不一致，则需要第二个参数，类型是`number`,值是入口站点的对应**工作流**的倒数排序值。
 
 3. 以程序所在路径打开`terminal`，windows电脑可以用`cmd` 或 `powershell`(直接在程序所在的文件夹地址栏里写`cmd`即以程序为路径打开`cmd`) 或先打开`terminal` 再用 `cd`命令进入到本程序所在的文件夹，运行`npm install`或任意钟爱的包管理器安装依赖。
-4. 运行`node src/main.js`即可
+4. 启动程序。使用源码运行爬虫只需`npm run dev`或者`yarn dev`即可。
+
+   > 运行源码爬取会自动监控文件的变化，文件变化后会自动重新运行爬虫，已经下载过的图片不会重新下载。
+5. 到此程序已经可以正常无误地运行了。但如果需要将此程序作为别的`javascript`程序的依赖，那么将文件打包编译是很有必要的，编译的脚本已经在`package.json`中的`scripts`中，只需运行`npm run build`或`yarn build`编译即可。
+   运行编译后的`javascript`文件：`node lib/src/main.js`
+
+   > 编译后的javascript文件不会受到监控，每更改文件之后需要手动再次运行`node lib/src/main.js`
+
+6. 退出程序。Windows 与 Linux `Ctrl + c`  Mac `control + c` 
 
 ### 编写工作流：
 
